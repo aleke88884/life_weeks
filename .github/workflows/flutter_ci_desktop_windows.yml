@@ -1,0 +1,62 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Flutter Desktop Windows CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    
+    steps:
+      # Проверяем код из репозитория
+      - uses: actions/checkout@v4
+      
+      # Устанавливаем Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.3' # Ваша версия Flutter
+          channel: 'stable'
+      
+      # Устанавливаем зависимости
+      - name: Install dependencies
+        run: flutter pub get
+      
+      # Проверяем форматирование
+      - name: Verify formatting
+        run: flutter format --set-exit-if-changed .
+      
+      # Анализируем код
+      - name: Analyze project source
+        run: flutter analyze
+      
+      # Запускаем тесты
+      - name: Run tests
+        run: flutter test
+      
+      # Собираем приложение для Windows
+      - name: Build Windows app
+        run: flutter build windows --release
+      
+      # Архивируем сборку в ZIP
+      - name: Archive Windows build
+        run: |
+          cd build/windows/x64/runner/Release
+          powershell Compress-Archive -Path * -DestinationPath ../../../../windows-app.zip
+      
+      # Загружаем артефакт
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4 # Обновляем до v4
+        with:
+          name: windows-build
+          path: windows-app.zip
+          retention-days: 7
